@@ -18,9 +18,10 @@ package se.oidc.oidfed.base.process.chain.impl;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import jakarta.annotation.Nonnull;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.lang.NonNull;
 import se.oidc.oidfed.base.data.federation.EntityStatement;
 import se.oidc.oidfed.base.data.federation.TrustMark;
 import se.oidc.oidfed.base.data.federation.TrustMarkOwner;
@@ -53,7 +54,7 @@ public class DefaultTrustMarkValidator implements TrustMarkValidator {
   private final FederationChainValidator chainValidator;
 
   @Override
-  public List<TrustMark> validateTrustMarks(final @NonNull List<TrustMark> trustMarks,
+  public List<TrustMark> validateTrustMarks(final @Nonnull List<TrustMark> trustMarks,
       final @NonNull String subject, final @NonNull String trustAnchor) throws ChainValidationException {
 
     if (trustMarks.isEmpty()) {
@@ -88,15 +89,15 @@ public class DefaultTrustMarkValidator implements TrustMarkValidator {
         final Map<String, List<String>> trustMarkIssuerMap =
             Optional.ofNullable(trustAnchorStatement.getTrustMarkIssuers())
                 .orElse(new HashMap<>());
-        if (!trustMarkIssuerMap.containsKey(trustMark.getId())) {
-          log.debug("Trust mark {} is not supported by Trust Anchor. Skipping", trustMark.getId());
+        if (!trustMarkIssuerMap.containsKey(trustMark.getTrustMarkId())) {
+          log.debug("Trust mark {} is not supported by Trust Anchor. Skipping", trustMark.getTrustMarkId());
           continue;
         }
-        final List<String> supportedIssuers = trustMarkIssuerMap.get(trustMark.getId());
+        final List<String> supportedIssuers = trustMarkIssuerMap.get(trustMark.getTrustMarkId());
         if (!supportedIssuers.isEmpty()) {
           if (!supportedIssuers.contains(trustMark.getIssuer())) {
             log.debug("Trust Mark issuer {} is not supported for trust mark {}. Skipping", trustMark.getIssuer(),
-                trustMark.getId());
+                trustMark.getTrustMarkId());
             continue;
           }
         }
@@ -107,13 +108,13 @@ public class DefaultTrustMarkValidator implements TrustMarkValidator {
           final Map<String, TrustMarkOwner> trustMarkOwners =
               Optional.ofNullable(trustAnchorStatement.getTrustMarkOwners())
                   .orElse(new HashMap<>());
-          if (!trustMarkOwners.containsKey(trustMark.getId())) {
+          if (!trustMarkOwners.containsKey(trustMark.getTrustMarkId())) {
             log.debug(
                 "No trust mark owner for the present delegation is present in the Trust Anchor statement. Skipping");
             continue;
           }
           // Find the trust mark owner for this trust mark ID
-          final TrustMarkOwner trustMarkOwner = trustMarkOwners.get(trustMark.getId());
+          final TrustMarkOwner trustMarkOwner = trustMarkOwners.get(trustMark.getTrustMarkId());
           // Check that the trust mark owner subject is the issuer of the delegation JWT
           final JWTClaimsSet claimsSet = delegation.getJWTClaimsSet();
           final String delegationSubject = claimsSet.getSubject();
@@ -136,10 +137,10 @@ public class DefaultTrustMarkValidator implements TrustMarkValidator {
           log.debug("Trust mark delegation successfully verified");
         }
         // Finally. Verify trust mark status
-        if (this.trustMarkStatusResolver.isStatusActive(trustMark.getId(), trustMark.getSubject(),
+        if (this.trustMarkStatusResolver.isStatusActive(trustMark.getTrustMarkId(), trustMark.getSubject(),
             trustMark.getIssuer())) {
           validatedList.add(trustMark);
-          log.debug("Trust Mark ID {} is valid", trustMark.getId());
+          log.debug("Trust Mark ID {} is valid", trustMark.getTrustMarkId());
         }
         else {
           log.debug("Trust Mark is revoked. Skipping");
